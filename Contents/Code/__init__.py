@@ -14,7 +14,7 @@ JIKAN_ANIME_SEARCH = "/search/anime?q={title}&limit=10"
 JIKAN_ANIME_DETAILS = "/anime/{id}"
 JIKAN_ANIME_PICTURES = "/anime/{id}/pictures"
 JIKAN_ANIME_CHARACTERS = "/anime/{id}/characters_staff"
-JIKAN_ANIME_EPISODES = "/anime/{id}/episodes"
+JIKAN_ANIME_EPISODES = "/anime/{id}/episodes/{page}"
 
 SLEEP_TIME = 4
 
@@ -122,14 +122,19 @@ class JikanPlex(Agent.TV_Shows):
                         role.role = i["name"]
                         role.photo = actor_image[0]
             
-        episodes_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=metadata.id))
-        for episode in episodes_data["episodes"]:
-            episodeSeason1 = metadata.seasons[1].episodes[int(episode["episode_id"])]
-            episodeSeason1.title = episode["title"]
-            try:
-                episodeSeason1.originally_available_at = Datetime.ParseDate(str(episode["aired"]["from"]).split("T")[0]).date()
-            except:
-                pass
+        current_episodes_page = 1
+        episodes_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=metadata.id, page=current_episodes_page))
+        while episodes_data["episodes_last_page"] >= current_episodes_page:
+            for episode in episodes_data["episodes"]:
+                episodeSeason1 = metadata.seasons[1].episodes[int(episode["episode_id"])]
+                episodeSeason1.title = episode["title"]
+                try:
+                    episodeSeason1.originally_available_at = Datetime.ParseDate(str(episode["aired"]["from"]).split("T")[0]).date()
+                except:
+                    pass
+            current_episodes_page += 1
+            if episodes_data["episodes_last_page"] >= current_episodes_page:
+                episodes_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=metadata.id, page=current_episodes_page))
 
         if len(media.seasons) > 1:
             if "Sequel" in search_result["related"]:
