@@ -136,6 +136,8 @@ class JikanPlex(Agent.TV_Shows):
             if episodes_data["episodes_last_page"] >= current_episodes_page:
                 episodes_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=metadata.id, page=current_episodes_page))
 
+
+
         if len(media.seasons) > 1:
             if "Sequel" in search_result["related"]:
                 media.seasons.pop("1")
@@ -183,18 +185,24 @@ class JikanPlex(Agent.TV_Shows):
                     elif search_data["image_url"] not in season.posters:
                             season.posters[search_data["image_url"]] = Proxy.Preview(HTTP.Request(search_data["image_url"]).content)
                     
-                    posters_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=sequel_id))
-                    for i in posters_data["episodes"]:
-                        season_episode = metadata.seasons[s].episodes[int(i["episode_id"])]
-                        season_episode.title = i["title"]
-                        try:
-                            season_episode.originally_available_at = Datetime.ParseDate(str(i["aired"]["from"]).split("T")[0]).date()
-                        except:
-                            pass
+                    current_episodes_page = 1
+                    posters_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=sequel_id, page=current_episodes_page))
+                    while posters_data["episodes_last_page"] >= current_episodes_page:
+                        for i in posters_data["episodes"]:
+                            season_episode = metadata.seasons[s].episodes[int(i["episode_id"])]
+                            season_episode.title = i["title"]
+                            try:
+                                season_episode.originally_available_at = Datetime.ParseDate(str(i["aired"]["from"]).split("T")[0]).date()
+                            except:
+                                pass
 
-                    if "Sequel" in search_data["related"]:
-                        for data in search_data["related"]["Sequel"]:
-                            sequel_id = data["mal_id"]
+                        if "Sequel" in search_data["related"]:
+                            for data in search_data["related"]["Sequel"]:
+                                sequel_id = data["mal_id"]
+                        current_episodes_page += 1
+                        if posters_data["episodes_last_page"] >= current_episodes_page:
+                            posters_data = get_json(JIKAN_URL + JIKAN_ANIME_EPISODES.format(id=sequel_id, page=current_episodes_page))
+
 
 
 class JikanPlex(Agent.Movies):
